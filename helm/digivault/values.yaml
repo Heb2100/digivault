@@ -12,36 +12,52 @@ service:
   port: 80 # 서비스가 노출할 포트
   targetPort: 3000 # 컨테이너가 리스닝하는 포트 (digivault 앱의 실제 포트)
 
-# ingress:
-#   enabled: false
-#   className: ""
-#   annotations: {}
-#     # kubernetes.io/ingress.class: nginx
-#     # kubernetes.io/tls-acme: "true"
-#   hosts:
-#     - host: chart-example.local
-#       paths:
-#         - path: /
-#           pathType: ImplementationSpecific
-#   tls: []
-#   #  - secretName: chart-example-tls
-#   #    hosts:
-#   #      - chart-example.local
+serviceAccount:
+  create: true # ServiceAccount를 생성할지 여부 (기본값: true)
+  annotations: {} # ServiceAccount에 추가할 어노테이션
+  name: "" # ServiceAccount의 이름을 지정 (비어 있으면 기본 이름이 생성됨)
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
 
 resources: {}
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts will run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
 
 nodeSelector: {}
 
 tolerations: []
 
 affinity: {}
+
+ingress:
+  enabled: false # Ingress를 사용할지 여부. 현재는 사용하지 않으므로 false로 설정
+  className: "" # Ingress 클래스 이름
+  annotations: {} # Ingress에 추가할 어노테이션
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    # - host: chart-example.local # 예시 호스트
+    #   paths:
+    #     - path: /
+    #       pathType: ImplementationSpecific
+  tls: [] # TLS (HTTPS) 설정
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+# 다음 autoscaling 섹션을 values.yaml에 추가하거나, 기존 섹션을 확인하세요.
+autoscaling:
+  enabled: false # HPA를 사용할지 여부. 현재는 사용하지 않으므로 false로 설정
+  minReplicas: 1 # 최소 Pod 개수
+  maxReplicas: 10 # 최대 Pod 개수
+  targetCPUUtilizationPercentage: 80 # CPU 사용률 기반 스케일링 임계값
+  # targetMemoryUtilizationPercentage: 80 # 메모리 사용률 기반 스케일링 임계값 (선택 사항)
