@@ -1,0 +1,62 @@
+# helm/digivault/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "digivault.fullname" . }} # Helm 템플릿 헬퍼 함수를 사용하여 Deployment의 이름 생성
+  labels:
+    {{- include "digivault.labels" . | nindent 4 }} # Helm 템플릿 헬퍼 함수를 사용하여 라벨 생성
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }} # values.yaml의 replicaCount 값을 사용
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "digivault.selectorLabels" . | nindent 6 }} # 셀렉터 라벨
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "digivault.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "digivault.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }} # 컨테이너 이름 (차트 이름과 동일하게)
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}" # Artifact Registry 이미지 경로와 태그
+          imagePullPolicy: {{ .Values.image.pullPolicy }} # values.yaml의 image.pullPolicy 사용 (Always 권장)
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }} # values.yaml의 service.targetPort 사용
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: / # 애플리케이션의 헬스 체크 경로 (필요시 수정)
+              port: http
+          readinessProbe:
+            httpGet:
+              path: / # 애플리케이션의 헬스 체크 경로 (필요시 수정)
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

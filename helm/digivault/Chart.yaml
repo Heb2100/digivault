@@ -1,0 +1,19 @@
+# helm/digivault/Chart.yaml
+apiVersion: v2
+name: digivault          # 차트 이름 (위에서 생성할 때 지정한 이름)
+description: A Helm chart for Digivault application # 차트에 대한 설명
+
+# A chart can be either an application chart or a library chart.
+#
+# Application charts are a collection of templates that can be packaged into a helm chart.
+# Library charts provide useful utilities or functions for the chart developer.
+type: application
+
+# This is the chart version. This version number should be incremented each time you make changes
+# to the chart and want to release a new version.
+version: 0.1.0 # 차트 버전 (나중에 업데이트 시 변경)
+
+# This is the version number of the application being deployed. This is not DRAFT.
+# This value is not incremented each time you make a change to the chart.
+# If you want to associate the application version with a chart pass it as a parameter.
+appVersion: "1.16.0" # 배포될 애플리케이션의 버전 (이미지 태그와 다를 수 있음)

@@ -1,0 +1,47 @@
+# helm/digivault/values.yaml
+
+replicaCount: 1 # 배포될 Pod의 초기 개수
+
+image:
+  repository: asia-northeast3-docker.pkg.dev/aesthetic-fiber-462503-t5/digivault/digivault-app # Artifact Registry의 기본 이미지 경로
+  tag: "latest" # 이미지의 기본 태그
+  pullPolicy: IfNotPresent # 이미지 가져오기 정책 (Always로 변경 권장)
+
+service:
+  type: LoadBalancer # 서비스 타입 (ClusterIP, NodePort, LoadBalancer)
+  port: 80 # 서비스가 노출할 포트
+  targetPort: 3000 # 컨테이너가 리스닝하는 포트 (digivault 앱의 실제 포트)
+
+# ingress:
+#   enabled: false
+#   className: ""
+#   annotations: {}
+#     # kubernetes.io/ingress.class: nginx
+#     # kubernetes.io/tls-acme: "true"
+#   hosts:
+#     - host: chart-example.local
+#       paths:
+#         - path: /
+#           pathType: ImplementationSpecific
+#   tls: []
+#   #  - secretName: chart-example-tls
+#   #    hosts:
+#   #      - chart-example.local
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts will run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

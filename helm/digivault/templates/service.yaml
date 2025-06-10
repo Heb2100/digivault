@@ -1,0 +1,16 @@
+# helm/digivault/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "digivault.fullname" . }}-service # 서비스 이름도 fullname 헬퍼 함수 사용
+  labels:
+    {{- include "digivault.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }} # values.yaml의 service.type 사용 (LoadBalancer)
+  ports:
+    - port: {{ .Values.service.port }} # 서비스가 노출할 외부 포트
+      targetPort: http # 컨테이너의 포트 이름 (deployment.yaml의 name: http와 일치)
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "digivault.selectorLabels" . | nindent 4 }} # Deployment의 Pod를 선택할 라벨
