@@ -28,7 +28,7 @@ jobs:
         run: |
           IMAGE_REPO="asia-northeast3-docker.pkg.dev/aesthetic-fiber-462503-t5/digivault"
           IMAGE_NAME="digivault-app"
-          IMAGE_TAG="latest"
+          IMAGE_TAG="2506102148"
 
           docker build -t $IMAGE_REPO/$IMAGE_NAME:$IMAGE_TAG .
           docker push $IMAGE_REPO/$IMAGE_NAME:$IMAGE_TAG
