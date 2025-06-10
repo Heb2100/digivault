@@ -42,6 +42,7 @@ jobs:
       - name: Configure kubectl
         run: |
           gcloud container clusters get-credentials digivault-cluster --region asia-northeast3
+
       - name: Deploy via Helm
         run: |
           IMAGE_REPO="asia-northeast3-docker.pkg.dev/aesthetic-fiber-462503-t5/digivault"
@@ -49,6 +50,6 @@ jobs:
 
           helm upgrade --install digivault ./helm/digivault \
             --set image.repository=$IMAGE_REPO \
-            --set image.name=$IMAGE_NAME \ # image.name 추가
-            --set image.tag=${{ env.NEW_IMAGE_TAG }} \ # 동적 태그 사용
-            --set image.pullPolicy=Always # 항상 최신 이미지 가져오도록 설정
+            --set image.name=$IMAGE_NAME \ 
+            --set image.tag=${{ env.NEW_IMAGE_TAG }} \
+            --set image.pullPolicy=Always
