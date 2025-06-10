@@ -33,6 +33,8 @@ jobs:
           docker build -t $IMAGE_REPO/$IMAGE_NAME:$IMAGE_TAG .
           docker push $IMAGE_REPO/$IMAGE_NAME:$IMAGE_TAG
 
+          echo "NEW_IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV 
+
       - name: Set up kubectl
         uses: google-github-actions/setup-gcloud@v2
         with:
@@ -48,4 +50,4 @@ jobs:
           IMAGE_REPO="asia-northeast3-docker.pkg.dev/aesthetic-fiber-462503-t5/digivault"
           IMAGE_NAME="digivault-app"
 
-          helm upgrade --install digivault ./helm/digivault --set image.repository=$IMAGE_REPO --set image.name=$IMAGE_NAME --set image.tag=${{ env.NEW_IMAGE_TAG }} --set image.pullPolicy=Always
+          helm upgrade --install digivault ./helm/digivault --set image.repository=$IMAGE_REPO --set image.name=$IMAGE_NAME --set image.tag=${{ env.NEW_IMAGE_TAG }} --set image.tag=${{ env.NEW_IMAGE_TAG }} --set image.pullPolicy=Always
