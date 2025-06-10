@@ -1,0 +1,378 @@
+'use client'
+
+import { useEffect, useState, useMemo } from 'react'
+import { useAccount } from 'wagmi'
+import { useWalletStore } from '@/store/useWalletStore'
+import ConnectWallet from '@/components/ui/ConnectWallet'
+import { isWalletRegistered } from '@/lib/auth'
+import { fetchWalletBalances } from '@/lib/wallet'
+import axios from 'axios'
+import CryptoJS from 'crypto-js'
+import jwt from 'jsonwebtoken'
+
+export default function WalletPage() {
+  const { address, status } = useAccount()
+
+  const ethBalance = useWalletStore((state) => state.ethBalance)
+  const tokenBalances = useWalletStore((state) => state.tokenBalances)
+  const setEthBalance = useWalletStore((state) => state.setEthBalance)
+  const setTokenBalances = useWalletStore((state) => state.setTokenBalances)
+  const { upbitAccessKey, upbitSecretKey, setUpbitKeys } = useWalletStore()
+  
+  // 실제로는 로그인/입력 등에서 받아온 값을 사용해야 함
+  const [upbitBalances, setUpbitBalances] = useState<{ symbol: string; balance: string; locked: string }[]>([])
+  const [upbitLoading, setUpbitLoading] = useState(false)
+  const [upbitError, setUpbitError] = useState<string | null>(null)
+
+  // 업비트 시세 상태
+  const [upbitPrices, setUpbitPrices] = useState<{ [symbol: string]: string }>({})
+
+  // 업비트 지원 마켓 목록을 미리 받아서(최초 1회) 메모리에 저장
+  const [upbitMarkets, setUpbitMarkets] = useState<string[]>([]);
+
+  // 바이낸스 시세 상태
+  const [binancePrices, setBinancePrices] = useState<{ [symbol: string]: string }>({})
+
+  // 코인베이스 시세 상태
+  const [coinbasePrices, setCoinbasePrices] = useState<{ [symbol: string]: string }>({})
+
+  // OKX 시세 상태
+  const [okxPrices, setOkxPrices] = useState<{ [symbol: string]: string }>({})
+
+  // 바이낸스 원화 환율 상태
+  const [binanceUSDTKRW, setBinanceUSDTKRW] = useState<number | null>(null)
+
+  // 메타마스크 토큰 목록 (ETH + tokenBalances)
+  const metamaskTokens = useMemo(() => [
+    { symbol: 'ETH', balance: ethBalance },
+    ...(tokenBalances || [])
+  ], [ethBalance, tokenBalances])
+
+  // 모든 토큰 심볼 집합
+  const allSymbols = Array.from(new Set([
+    ...metamaskTokens.map(t => t.symbol),
+    ...upbitBalances.map(t => t.symbol)
+  ]))
+
+  // 토큰별 잔고 매칭
+  const getBalance = (arr: { symbol: string; balance: string }[], symbol: string) => arr.find((t: { symbol: string }) => t.symbol === symbol)?.balance || '-'
+
+  // 업비트 잔고 조회 함수 (API 라우트 호출)
+  const fetchUpbitBalances = async () => {
+    if (!upbitAccessKey || !upbitSecretKey) return;
+    setUpbitLoading(true)
+    setUpbitError(null)
+    try {
+      const res = await fetch('/api/upbit-balance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessKey: upbitAccessKey, secretKey: upbitSecretKey })
+      })
+      const result = await res.json()
+      if (!res.ok) throw new Error(result.error || '업비트 잔고 조회 실패')
+      setUpbitBalances(result.balances)
+    } catch (err: any) {
+      setUpbitError(err.message || '업비트 잔고 조회 실패')
+      setUpbitBalances([])
+      console.error('업비트 API 에러:', err)
+    } finally {
+      setUpbitLoading(false)
+    }
+  }
+
+  // 업비트 시세 조회 함수
+  const fetchUpbitPrices = async () => {
+    try {
+      // 잔고 표의 모든 토큰을 시세 조회 대상으로
+      const symbols = allSymbols.filter(s => s !== '-' && upbitMarkets.includes(s.toUpperCase())).map(s => s.toUpperCase())
+      if (symbols.length === 0) return;
+      const marketQuery = symbols.map(s => `KRW-${s}`).join(',')
+      const res = await fetch(`https://api.upbit.com/v1/ticker?markets=${marketQuery}`)
+      const data = await res.json()
+      const priceMap: { [symbol: string]: string } = {}
+      data.forEach((item: any) => {
+        const symbol = item.market.replace('KRW-', '')
+        priceMap[symbol] = item.trade_price.toLocaleString() + ' KRW'
+      })
+      setUpbitPrices(priceMap)
+    } catch (err) {
+      setUpbitPrices({})
+    }
+  }
+
+  // 바이낸스 시세 조회 함수 (API 라우트 호출, 원화 환산)
+  const fetchBinancePrices = async () => {
+    try {
+      // 업비트 잔고에 있는 토큰만 대상으로
+      const symbols = upbitBalances.map(t => t.symbol.toUpperCase()).filter(s => s !== '-')
+      let usdtKrw = null
+      // USDT/KRW 환율 (업비트 시세 활용)
+      try {
+        const upbitRes = await fetch('https://api.upbit.com/v1/ticker?markets=KRW-USDT')
+        const upbitData = await upbitRes.json()
+        if (upbitData && upbitData[0]?.trade_price) usdtKrw = upbitData[0].trade_price
+      } catch {}
+      setBinanceUSDTKRW(usdtKrw)
+      // 바이낸스 시세를 서버에서 받아옴
+      const res = await fetch('/api/binance-price', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbols })
+      })
+      const result = await res.json()
+      const priceMap: { [symbol: string]: string } = {}
+      for (const symbol of symbols) {
+        const price = result.prices?.[symbol]
+        if (price && usdtKrw) {
+          priceMap[symbol] = Math.round(parseFloat(price) * usdtKrw).toLocaleString() + ' KRW'
+        } else if (price) {
+          priceMap[symbol] = '$' + parseFloat(price).toLocaleString()
+        }
+      }
+      setBinancePrices(priceMap)
+    } catch (err) {
+      setBinancePrices({})
+    }
+  }
+
+  // 코인베이스 시세 조회 함수
+  const fetchCoinbasePrices = async () => {
+    try {
+      const symbols = upbitBalances.map(t => t.symbol.toUpperCase()).filter(s => s !== '-')
+      const res = await fetch('/api/coinbase-price', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbols })
+      })
+      const result = await res.json()
+      setCoinbasePrices(result.prices || {})
+    } catch (err) {
+      setCoinbasePrices({})
+    }
+  }
+
+  // OKX 시세 조회 함수
+  const fetchOkxPrices = async () => {
+    try {
+      const symbols = upbitBalances.map(t => t.symbol.toUpperCase()).filter(s => s !== '-')
+      const res = await fetch('/api/okx-price', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbols })
+      })
+      const result = await res.json()
+      setOkxPrices(result.prices || {})
+    } catch (err) {
+      setOkxPrices({})
+    }
+  }
+
+  useEffect(() => {
+    console.log('업비트 키:', upbitAccessKey, upbitSecretKey)
+    if (upbitAccessKey && upbitSecretKey) {
+      fetchUpbitBalances();
+    }
+  }, [upbitAccessKey, upbitSecretKey]);
+
+  useEffect(() => {
+    const handleWallet = async () => {
+      if (status === 'connected' && address) {  
+        const isRegistered = await isWalletRegistered(address)
+        if (!isRegistered) return
+  
+        const { eth, tokens } = await fetchWalletBalances(address)
+        setEthBalance(eth)
+        setTokenBalances(tokens)
+      }
+    }
+    handleWallet()
+  }, [status, address])
+
+  // 새로고침 시 localStorage에서 업비트 키 복원
+  useEffect(() => {
+    if (!upbitAccessKey || !upbitSecretKey) {
+      const raw = localStorage.getItem('wallet-storage')
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw)
+          const accessKey = parsed?.state?.upbitAccessKey || ''
+          const secretKey = parsed?.state?.upbitSecretKey || ''
+          if (accessKey && secretKey) setUpbitKeys?.(accessKey, secretKey)
+        } catch {}
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    fetch('https://api.upbit.com/v1/market/all?isDetails=false')
+      .then(res => res.json())
+      .then(data => {
+        setUpbitMarkets(data.filter((m: any) => m.market.startsWith('KRW-')).map((m: any) => m.market.replace('KRW-', '')));
+      });
+  }, []);
+
+  useEffect(() => {
+    fetchUpbitPrices()
+    fetchBinancePrices()
+    fetchCoinbasePrices()
+    fetchOkxPrices()
+    // eslint-disable-next-line
+  }, [allSymbols.join(',')])
+
+  // 업비트 잔고에서 사용 가능한 금액 계산 (locked 금액 제외)
+  const getAvailableBalance = (symbol: string) => {
+    const balance = upbitBalances.find(b => b.symbol === symbol)
+    if (!balance) return null
+    const locked = parseFloat(balance.locked || '0')
+    const total = parseFloat(balance.balance)
+    return total - locked
+  }
+
+  return (
+    <div className="p-4">
+      {/* 통합 잔고 표 */}
+      <div className="bg-white rounded-2xl shadow p-6 max-w-5xl mx-auto">
+        <table className="w-full border-separate border-spacing-0 text-center">
+          <thead>
+            <tr className="bg-[#f9fbfd]">
+              <th className="py-3 px-4 border-b font-semibold text-[#222]">토큰</th>
+              {status === 'connected' && (
+                <th className="py-3 px-4 border-b font-semibold text-[#222]">🦊 메타마스크 지갑잔고</th>
+              )}
+              <th className="py-3 px-4 border-b font-semibold text-[#222]">🟢 업비트 지갑잔고</th>
+              <th className="py-3 px-4 border-b font-semibold text-[#222]">🟡 바이낸스 시세</th>
+              <th className="py-3 px-4 border-b font-semibold text-[#222]">🔵 코인베이스 시세</th>
+              <th className="py-3 px-4 border-b font-semibold text-[#222]">🟣 OKX 시세</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...allSymbols]
+              .sort((a, b) => {
+                const priceA = Number(upbitPrices[a]?.replace(/[^\d.]/g, '') || 0)
+                const priceB = Number(upbitPrices[b]?.replace(/[^\d.]/g, '') || 0)
+                return priceB - priceA // 비싼 순서 (내림차순)
+              })
+              .filter(symbol => {
+                const upbitBalanceInfo = upbitBalances.find(b => b.symbol === symbol)
+                const balNum = Number(upbitBalanceInfo?.balance || '0')
+                const hasUpbitBalance = balNum > 0
+                return hasUpbitBalance
+              })
+              .map((symbol: string) => (
+              <tr key={symbol} className="border-b">
+                <td className="py-3 px-4 font-medium">{symbol}</td>
+                {status === 'connected' && (
+                  <td className="py-3 px-4">
+                    {getBalance(metamaskTokens, symbol)}
+                  </td>
+                )}
+                <td className="py-3 px-4">
+                  {(() => {
+                    const upbitBal = getBalance(upbitBalances, symbol)
+                    const availableBal = getAvailableBalance(symbol)
+                    return (
+                      <>
+                        {upbitBal && upbitBal !== '-' ? (
+                          <>
+                            <div>{upbitBal}</div>
+                            {availableBal !== null && availableBal !== parseFloat(upbitBal) && (
+                              <div className="text-xs text-gray-500">
+                                (사용가능: {availableBal.toFixed(8)})
+                              </div>
+                            )}
+                          </>
+                        ) : '-'}
+                        {upbitPrices[symbol] && (
+                          <div className="text-xs text-gray-500 mt-1">{upbitPrices[symbol]}</div>
+                        )}
+                      </>
+                    )
+                  })()}
+                </td>
+                <td className="py-3 px-4">
+                  {(() => {
+                    const upbitBal = getBalance(upbitBalances, symbol)
+                    const binancePrice = binancePrices[symbol] ? parseFloat(binancePrices[symbol].replace(/[^\d.]/g, '')) : null
+                    const upbitPrice = upbitPrices[symbol] ? parseFloat(upbitPrices[symbol].replace(/[^\d.]/g, '')) : null
+                    const balNum = upbitBal && upbitBal !== '-' ? parseFloat(upbitBal) : null
+                    let diff = null
+                    if (binancePrice && upbitPrice && balNum) {
+                      // (바이낸스시세 - 업비트시세) * 개수
+                      diff = Math.round((binancePrice - upbitPrice) * balNum)
+                    }
+                    return (
+                      <>
+                        {diff !== null && (
+                          <div className={`text-xs mb-1 ${diff >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            ({diff >= 0 ? '+' : ''}{diff.toLocaleString()} KRW)
+                          </div>
+                        )}
+                        {binancePrices[symbol] && (
+                          <div className="text-xs text-gray-500">{binancePrices[symbol]}</div>
+                        )}
+                      </>
+                    )
+                  })()}
+                </td>
+                <td className="py-3 px-4">
+                  {(() => {
+                    const upbitBal = getBalance(upbitBalances, symbol)
+                    const coinbasePrice = coinbasePrices[symbol] ? parseFloat(coinbasePrices[symbol].replace(/[^\d.]/g, '')) : null
+                    const upbitPrice = upbitPrices[symbol] ? parseFloat(upbitPrices[symbol].replace(/[^\d.]/g, '')) : null
+                    const balNum = upbitBal && upbitBal !== '-' ? parseFloat(upbitBal) : null
+                    let diff = null
+                    if (coinbasePrice && upbitPrice && balNum) {
+                      // (코인베이스시세 - 업비트시세) * 개수
+                      diff = Math.round((coinbasePrice - upbitPrice) * balNum)
+                    }
+                    return (
+                      <>
+                        {diff !== null && (
+                          <div className={`text-xs mb-1 ${diff >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            ({diff >= 0 ? '+' : ''}{diff.toLocaleString()} KRW)
+                          </div>
+                        )}
+                        {coinbasePrices[symbol] && (
+                          <div className="text-xs text-gray-500">{coinbasePrices[symbol]}</div>
+                        )}
+                      </>
+                    )
+                  })()}
+                </td>
+                <td className="py-3 px-4">
+                  {(() => {
+                    const upbitBal = getBalance(upbitBalances, symbol)
+                    const okxPrice = okxPrices[symbol] ? parseFloat(okxPrices[symbol].replace(/[^\d.]/g, '')) : null
+                    const upbitPrice = upbitPrices[symbol] ? parseFloat(upbitPrices[symbol].replace(/[^\d.]/g, '')) : null
+                    const balNum = upbitBal && upbitBal !== '-' ? parseFloat(upbitBal) : null
+                    let diff = null
+                    if (okxPrice && upbitPrice && balNum) {
+                      // (OKX시세 - 업비트시세) * 개수
+                      diff = Math.round((okxPrice - upbitPrice) * balNum)
+                    }
+                    return (
+                      <>
+                        {diff !== null && (
+                          <div className={`text-xs mb-1 ${diff >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            ({diff >= 0 ? '+' : ''}{diff.toLocaleString()} KRW)
+                          </div>
+                        )}
+                        {okxPrices[symbol] && (
+                          <div className="text-xs text-gray-500">{okxPrices[symbol]}</div>
+                        )}
+                      </>
+                    )
+                  })()}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {/* 지갑 연결/해제 버튼 */}
+      <div className="mt-8 flex justify-center">
+        <ConnectWallet />
+      </div>
+    </div>
+  )
+}

@@ -1,0 +1,22 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: digivault-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: digivault
+  template:
+    metadata:
+      labels:
+        app: digivault
+    spec:
+      containers:
+      - name: digivault-container
+        image: asia-northeast3-docker.pkg.dev/aesthetic-fiber-462503-t5/digivault/digivault-app:latest
+        ports:
+        - containerPort: 3000
+        envFrom:
+        - secretRef:
+            name: digivault-env
