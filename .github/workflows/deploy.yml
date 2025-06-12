@@ -33,7 +33,7 @@ jobs:
         run: |
           IMAGE_REPO="asia-northeast3-docker.pkg.dev/aesthetic-fiber-462503-t5/digivault"
           IMAGE_NAME="digivault-app"
-          IMAGE_TAG="2506102148" # 또는 $(date +%Y%m%d%H%M%S) 또는 $(git rev-parse --short HEAD)
+          IMAGE_TAG="$(date +%Y%m%d%H%M%S)"
 
           # --- 완전한 이미지 경로를 만듭니다 ---
           FULL_IMAGE_NAME="$IMAGE_REPO/$IMAGE_NAME:$IMAGE_TAG"
