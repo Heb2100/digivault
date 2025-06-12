@@ -167,6 +167,10 @@ export default function WalletPage() {
     }
   }
 
+  // 에러 상태 관리 추가
+  const [walletError, setWalletError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+
   useEffect(() => {
     console.log('업비트 키:', upbitAccessKey, upbitSecretKey)
     if (upbitAccessKey && upbitSecretKey) {
@@ -177,12 +181,24 @@ export default function WalletPage() {
   useEffect(() => {
     const handleWallet = async () => {
       if (status === 'connected' && address) {  
-        const isRegistered = await isWalletRegistered(address)
-        if (!isRegistered) return
+        setIsLoading(true)
+        setWalletError(null)
+        try {
+          const isRegistered = await isWalletRegistered(address)
+          if (!isRegistered) {
+            setWalletError('등록되지 않은 지갑입니다. 먼저 회원가입을 진행해주세요.')
+            return
+          }
   
-        const { eth, tokens } = await fetchWalletBalances(address)
-        setEthBalance(eth)
-        setTokenBalances(tokens)
+          const { eth, tokens } = await fetchWalletBalances(address)
+          setEthBalance(eth)
+          setTokenBalances(tokens)
+        } catch (err: any) {
+          setWalletError(err.message || '지갑 잔고 조회 중 오류가 발생했습니다.')
+          console.error('지갑 에러:', err)
+        } finally {
+          setIsLoading(false)
+        }
       }
     }
     handleWallet()
@@ -230,6 +246,25 @@ export default function WalletPage() {
 
   return (
     <div className="p-4">
+      {/* 에러 메시지 표시 */}
+      {(walletError || upbitError) && (
+        <div className="max-w-5xl mx-auto mb-4">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            {walletError && <p className="mb-2">{walletError}</p>}
+            {upbitError && <p>{upbitError}</p>}
+          </div>
+        </div>
+      )}
+
+      {/* 로딩 상태 표시 */}
+      {(isLoading || upbitLoading) && (
+        <div className="max-w-5xl mx-auto mb-4">
+          <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg">
+            데이터를 불러오는 중입니다...
+          </div>
+        </div>
+      )}
+
       {/* 통합 잔고 표 */}
       <div className="bg-white rounded-2xl shadow p-6 max-w-5xl mx-auto">
         <table className="w-full border-separate border-spacing-0 text-center">
