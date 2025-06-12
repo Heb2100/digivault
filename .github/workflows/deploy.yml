@@ -23,6 +23,12 @@ jobs:
       - name: Configure Docker to use gcloud as a credential helper
         run: |
           gcloud auth configure-docker asia-northeast3-docker.pkg.dev
+      
+      - name: Inject Supabase ENV to .env.production
+        run: |
+          echo "NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" >> .env.production
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" >> .env.production
+
       - name: Build and Push Docker image to Artifact Registry
         run: |
           IMAGE_REPO="asia-northeast3-docker.pkg.dev/aesthetic-fiber-462503-t5/digivault"

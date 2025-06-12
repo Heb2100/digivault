@@ -48,6 +48,32 @@ spec:
               port: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: digivault-db-secret # 위에서 만든 Secret 이름
+                  key: DB_USER            # Secret에 저장된 키 이름
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: digivault-db-secret
+                  key: DB_PASSWORD
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: digivault-db-secret
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: digivault-db-secret
+                  key: DB_PORT
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: digivault-db-secret
+                  key: DB_NAME
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
