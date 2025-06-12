@@ -86,8 +86,18 @@ export default function WalletPage() {
       // 잔고 표의 모든 토큰을 시세 조회 대상으로
       const symbols = allSymbols.filter(s => s !== '-' && upbitMarkets.includes(s.toUpperCase())).map(s => s.toUpperCase())
       if (symbols.length === 0) return;
-      const marketQuery = symbols.map(s => `KRW-${s}`).join(',')
-      const res = await fetch(`https://api.upbit.com/v1/ticker?markets=${marketQuery}`)
+      
+      const res = await fetch('/api/upbit-price', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbols })
+      })
+      
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.message || '업비트 시세 조회 실패')
+      }
+      
       const data = await res.json()
       const priceMap: { [symbol: string]: string } = {}
       data.forEach((item: any) => {
@@ -95,7 +105,8 @@ export default function WalletPage() {
         priceMap[symbol] = item.trade_price.toLocaleString() + ' KRW'
       })
       setUpbitPrices(priceMap)
-    } catch (err) {
+    } catch (err: any) {
+      console.error('업비트 시세 조회 에러:', err)
       setUpbitPrices({})
     }
   }
@@ -105,32 +116,27 @@ export default function WalletPage() {
     try {
       // 업비트 잔고에 있는 토큰만 대상으로
       const symbols = upbitBalances.map(t => t.symbol.toUpperCase()).filter(s => s !== '-')
-      let usdtKrw = null
-      // USDT/KRW 환율 (업비트 시세 활용)
-      try {
-        const upbitRes = await fetch('https://api.upbit.com/v1/ticker?markets=KRW-USDT')
-        const upbitData = await upbitRes.json()
-        if (upbitData && upbitData[0]?.trade_price) usdtKrw = upbitData[0].trade_price
-      } catch {}
-      setBinanceUSDTKRW(usdtKrw)
-      // 바이낸스 시세를 서버에서 받아옴
+      
+      // USDT/KRW 환율도 백엔드에서 조회
       const res = await fetch('/api/binance-price', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ symbols })
+        body: JSON.stringify({ 
+          symbols,
+          includeUsdtKrw: true // USDT/KRW 환율도 함께 요청
+        })
       })
-      const result = await res.json()
-      const priceMap: { [symbol: string]: string } = {}
-      for (const symbol of symbols) {
-        const price = result.prices?.[symbol]
-        if (price && usdtKrw) {
-          priceMap[symbol] = Math.round(parseFloat(price) * usdtKrw).toLocaleString() + ' KRW'
-        } else if (price) {
-          priceMap[symbol] = '$' + parseFloat(price).toLocaleString()
-        }
+      
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.message || '바이낸스 시세 조회 실패')
       }
-      setBinancePrices(priceMap)
-    } catch (err) {
+      
+      const result = await res.json()
+      setBinanceUSDTKRW(result.usdtKrw)
+      setBinancePrices(result.prices || {})
+    } catch (err: any) {
+      console.error('바이낸스 시세 조회 에러:', err)
       setBinancePrices({})
     }
   }
@@ -220,10 +226,16 @@ export default function WalletPage() {
   }, [])
 
   useEffect(() => {
-    fetch('https://api.upbit.com/v1/market/all?isDetails=false')
+    fetch('/api/upbit-markets')
       .then(res => res.json())
       .then(data => {
-        setUpbitMarkets(data.filter((m: any) => m.market.startsWith('KRW-')).map((m: any) => m.market.replace('KRW-', '')));
+        if (data.markets) {
+          setUpbitMarkets(data.markets.filter((m: string) => m.startsWith('KRW-')).map((m: string) => m.replace('KRW-', '')));
+        }
+      })
+      .catch(err => {
+        console.error('업비트 마켓 목록 조회 에러:', err)
+        setUpbitMarkets([])
       });
   }, []);
 
