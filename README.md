@@ -83,9 +83,23 @@
 
 **frontend 에서 api 로 upbit, binance 값을 조회해 CORS 에러가 나던 이슈**
 - 기존에 frontend 에서 API 로 upbit 잔고를 조회할 경우 생기는 문제
-<pre></pre>
+<pre>
+        const upbitResponse = await fetch('https://api.upbit.com/v1/ticker?markets=KRW-USDT', {
+          headers: {
+            'Accept': 'application/json',Add commentMore actions
+          },
+        })
+        if (upbitResponse.ok) {
+          const upbitData = await upbitResponse.json()
+          if (upbitData && upbitData[0]?.trade_price) {
+            usdtKrw = upbitData[0].trade_price
+          }
+  
+</pre>
 - /api/upbit-price 로 개선하여 CORS 문제를 해결한 코드
-<pre>import { NextResponse } from 'next/server'
+<pre>
+
+import { NextResponse } from 'next/server'
 
 export async function POST(req: Request) {
   try {
