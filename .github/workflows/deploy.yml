@@ -55,7 +55,7 @@ jobs:
 
       - name: Deploy via Helm
         run: |
-          helm upgrade --install digivault ./helm/digivault 
+          helm upgrade --install digivault ./helm/digivault \
           --set image.repository=asia-northeast3-docker.pkg.dev/aesthetic-fiber-462503-t5/digivault \
           --set image.name=digivault-app \
           --set image.tag=$IMAGE_TAG \
