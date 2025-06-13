@@ -4,8 +4,8 @@
 > 업비트 API 연동 및 멀티 거래소 시세 비교를 통해 자금의 동향을 관리하고,  
 > GCP 기반의 CI/CD 파이프라인을 통해 운영 안정성을 확보한 프로젝트입니다.
 <img src="./public/welcomepage1.png"/>
-<img src="./public/welcomepage2.png"/>
 <img src="./public/welcomepage3.png"/>
+<img src="./public/welcomepage2.png"/>
 ---
 
 ##  기술 스택
