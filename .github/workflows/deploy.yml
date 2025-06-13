@@ -41,7 +41,11 @@ jobs:
           docker build --no-cache -t $FULL_IMAGE_NAME . # 빌드 시에도 이 변수 사용
           docker push $FULL_IMAGE_NAME # 푸시 시에도 이 변수 사용
           
-          echo "NEW_FULL_IMAGE_NAME=$FULL_IMAGE_NAME" >> $GITHUB_ENV # 다음 스텝으로 전달
+          # 👉 다음 스텝으로 전달
+          echo "IMAGE_REPO=$IMAGE_REPO" >> $GITHUB_ENV
+          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+          echo "FULL_IMAGE_NAME=$FULL_IMAGE_NAME" >> $GITHUB_ENV
 
       - name: Set up kubectl
         uses: google-github-actions/setup-gcloud@v2
