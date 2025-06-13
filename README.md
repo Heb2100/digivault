@@ -6,7 +6,7 @@
 
 ---
 
-## 🛠️ 기술 스택
+##  기술 스택
 
 | 영역 | 스택 |
 |------|------|
@@ -19,21 +19,21 @@
 
 ---
 
-## 📦 주요 기능
+## 주요 기능
 
 | 기능명 | 설명 |
 |--------|------|
-| 🧑‍💼 메타마스크 로그인 | `wagmi` 기반의 Web3 로그인 |
-| 🏦 업비트 자산 연동 | Access/Secret Key 입력 시 실제 잔고 조회 가능 |
-| 📈 시세 비교 | 업비트/바이낸스/코인베이스/OKX 가격 비교 후 차익 계산 |
-| 💰 차익 실현 포인트 강조 | 거래소별 가격 차이 및 수익 예측 정보 제공 |
-| 💼 자산 대시보드 | 보유 자산, 시세, 차익을 테이블 기반으로 통합 시각화 |
-| 🚀 CI/CD 자동 배포 | `GitHub Actions` + `GCP Artifact Registry` + `Helm` 기반 자동화 |
-| 🔐 보안 고려 | `.env.production` 자동 주입, 키 로컬 보관, CORS 프록시 처리 |
+| 메타마스크 로그인 | `wagmi` 기반의 Web3 로그인 |
+| 업비트 자산 연동 | Access/Secret Key 입력 시 실제 잔고 조회 가능 |
+| 시세 비교 | 업비트/바이낸스/코인베이스/OKX 가격 비교 후 차익 계산 |
+| 차익 실현 포인트 강조 | 거래소별 가격 차이 및 수익 예측 정보 제공 |
+| 자산 대시보드 | 보유 자산, 시세, 차익을 테이블 기반으로 통합 시각화 |
+| CI/CD 자동 배포 | `GitHub Actions` + `GCP Artifact Registry` + `Helm` 기반 자동화 |
+| 보안 고려 | `.env.production` 자동 주입, 키 로컬 보관, CORS 프록시 처리 |
 
 ---
 
-## 📦 주요 디버깅
+## 주요 디버깅
 **Helm 에 artifact registry 의 image name, tag 를 맞추지 않아서 GCP kub 에 ImagePullBackOff 에러가 뜨던 이슈**
 - .github/workflows/deploy.yaml 에 취소선과 name, tag 전역변수로 바꿔서 추가
 <pre>      
@@ -79,9 +79,45 @@
           imagePullPolicy: {{ .Values.image.pullPolicy }}</pre>
           
 
+
+
 **frontend 에서 api 로 upbit, binance 값을 조회해 CORS 에러가 나던 이슈**
-- 기존에 frontend 에샤 API 로 upbit 잔고를 조회할 경우 생기는 문제
+- 기존에 frontend 에서 API 로 upbit 잔고를 조회할 경우 생기는 문제
+<pre></pre>
 - /api/upbit-price 로 개선하여 CORS 문제를 해결한 코드
+<pre>import { NextResponse } from 'next/server'
+
+export async function POST(req: Request) {
+  try {
+    const { symbols } = await req.json()
+    
+    if (!symbols || !Array.isArray(symbols)) {
+      return NextResponse.json({ error: 'Invalid symbols parameter' }, { status: 400 })
+    }
+
+    const marketQuery = symbols.map(s => `KRW-${s}`).join(',')
+    const response = await fetch(`https://api.upbit.com/v1/ticker?markets=${marketQuery}`, {
+      headers: {
+        'Accept': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || '업비트 API 호출 실패')
+    }
+
+    const data = await response.json()
+    return NextResponse.json(data)
+  } catch (error: any) {
+    console.error('업비트 시세 조회 에러:', error)
+    return NextResponse.json(
+      { error: error.message || '업비트 시세 조회 중 오류가 발생했습니다.' },
+      { status: 500 }
+    )
+  }
+} </pre>
+
 
 
 **로그인시 조회되도록 하기 위한 CSR 구조. zustard 를 통한 빠른 잔액조회**
@@ -154,17 +190,17 @@ export const useWalletStore = create(
 
 
 
-## 🔐 보안 설계 고려
+## 보안 설계 고려
 
-- ✅ Supabase env 자동 주입 (`NEXT_PUBLIC_...` secret → `.env.production`)
-- ✅ 외부 API (Upbit, Binance 등) 프록시 처리 → CORS 우회
-- ✅ 업비트 Secret Key는 상태만 저장하고, Supabase에 직접 저장하지 않음
-- ✅ GCP IAM 권한 최소화된 SA만 GitHub Actions에서 사용
-- ✅ CI/CD시 이미지 태그를 `date +%Y%m%d%H%M%S`로 버전 관리
+- Supabase env 자동 주입 (`NEXT_PUBLIC_...` secret → `.env.production`)
+- 외부 API (Upbit, Binance 등) 프록시 처리 → CORS 우회
+- 업비트 Secret Key는 상태만 zustard에 저장하고, Supabase에 직접 저장하지 않음
+- GCP IAM 권한 최소화된 SA만 GitHub Actions에서 사용
+- CI/CD시 이미지 태그를 `date +%Y%m%d%H%M%S`로 버전 관리
 
 ---
 
-## 🚀 CI/CD 배포 구조
+## CI/CD 배포 구조
 
 | 단계 | 설명 |
 |------|------|
@@ -175,7 +211,7 @@ export const useWalletStore = create(
 
 ---
 
-## 🧪 향후 발전 방향
+## 향후 발전 방향
 
 - [ ] **JWT 기반 세션 관리 및 SSO 연동**
 - [ ] **다중 지갑(Naver, Kaikas 등) 연동**
