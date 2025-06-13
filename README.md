@@ -78,8 +78,7 @@
           image: "{{ .Values.image.repository }}/{{ .Values.image.name }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}</pre>
           
-
-
+---
 
 **frontend 에서 api 로 upbit, binance 값을 조회해 CORS 에러가 나던 이슈**
 - 기존에 frontend 에서 API 로 upbit 잔고를 조회할 경우 생기는 문제
@@ -132,6 +131,7 @@ export async function POST(req: Request) {
   }
 } </pre>
 
+---
 
 
 **로그인시 조회되도록 하기 위한 CSR 구조. zustard 를 통한 빠른 잔액조회**
@@ -201,6 +201,7 @@ export const useWalletStore = create(
 )</pre>
 
 
+---
 
 
 
