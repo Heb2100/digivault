@@ -81,35 +81,44 @@ export default function WalletPage() {
   }
 
   // 업비트 시세 조회 함수
-  const fetchUpbitPrices = async () => {
-    try {
-      // 잔고 표의 모든 토큰을 시세 조회 대상으로
-      const symbols = allSymbols.filter(s => s !== '-' && upbitMarkets.includes(s.toUpperCase())).map(s => s.toUpperCase())
-      if (symbols.length === 0) return;
-      
-      const res = await fetch('/api/upbit-price', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ symbols })
-      })
-      
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.message || '업비트 시세 조회 실패')
+    const fetchUpbitPrices = async () => {
+      try {
+        // 잔고 토큰 + 마켓 목록 기반 유효한 심볼만 필터
+        const symbols = allSymbols
+          .filter((s) => s !== '-' && upbitMarkets.includes(s.toUpperCase()))
+          .map((s) => s.toUpperCase())
+    
+        if (symbols.length === 0) return
+        console.log('⛳ symbols for upbit-price:', symbols)
+    
+        const res = await fetch('/api/upbit-price', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ symbols }),
+        })
+    
+        if (!res.ok) {
+          const error = await res.json()
+          throw new Error(error.message || '업비트 시세 조회 실패')
+        }
+    
+        const data = await res.json()
+    
+        const priceMap: { [symbol: string]: string } = {}
+        for (const item of data) {
+          const symbol = item.market.replace('KRW-', '')
+          const price = item.trade_price
+          priceMap[symbol] = price.toLocaleString() + ' KRW'
+        }
+    
+        setUpbitPrices(priceMap)
+      } catch (err: any) {
+        console.error('업비트 시세 조회 에러:', err)
+        setUpbitPrices({})
       }
-      
-      const data = await res.json()
-      const priceMap: { [symbol: string]: string } = {}
-      data.forEach((item: any) => {
-        const symbol = item.market.replace('KRW-', '')
-        priceMap[symbol] = item.trade_price.toLocaleString() + ' KRW'
-      })
-      setUpbitPrices(priceMap)
-    } catch (err: any) {
-      console.error('업비트 시세 조회 에러:', err)
-      setUpbitPrices({})
     }
-  }
 
   // 바이낸스 시세 조회 함수 (API 라우트 호출, 원화 환산)
   const fetchBinancePrices = async () => {
