@@ -14,8 +14,8 @@
 | **백엔드/API** | `Next.js Route Handlers`, `Supabase`, `PostgreSQL` |
 | **지갑 연동** | `wagmi`, `ethers.js`, `viem` |
 | **CI/CD** | `GitHub Actions`, `Docker`, `GCP GKE`, `Helm` |
-| **테스트** | `Playwright` (E2E) |
-| **디자인 협업** | `Figma` (디자인 시스템 기반 UI 개선) |
+| **테스트** | `Playwright` (예정) |
+| **디자인 협업** | `Figma` (예정) |
 
 ---
 
