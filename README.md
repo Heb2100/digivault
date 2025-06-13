@@ -36,20 +36,18 @@
 ## 📦 주요 디버깅
 **Helm 에 artifact registry 의 image name, tag 를 맞추지 않아서 GCP kub 에 ImagePullBackOff 에러가 뜨던 이슈**
 - .github/workflows/deploy.yaml 에 취소선과 name, tag 전역변수로 바꿔서 추가
-- <pre>      
+<pre>      
               - name: Build and Push Docker image to Artifact Registry
         run: |
           IMAGE_REPO="asia-northeast3-docker.pkg.dev/aesthetic-fiber-462503-t5/digivault"
           IMAGE_NAME="digivault-app"
           IMAGE_TAG="$(date +%Y%m%d%H%M%S)"
 
-          # --- 완전한 이미지 경로를 만듭니다 ---
           FULL_IMAGE_NAME="$IMAGE_REPO/$IMAGE_NAME:$IMAGE_TAG"
           
           docker build --no-cache -t $FULL_IMAGE_NAME . # 빌드 시에도 이 변수 사용
           docker push $FULL_IMAGE_NAME # 푸시 시에도 이 변수 사용
           
-          # 👉 다음 스텝으로 전달
           echo "IMAGE_REPO=$IMAGE_REPO" >> $GITHUB_ENV
           echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
@@ -66,20 +64,94 @@
           --set image.pullPolicy=Always</pre>
           
 - .helm/digivault/value.yaml 에 repository, name, tag 올바르게 받을수 있도록 변경 (tag 는 현재날짜로 설정. 배포시 덮어씌워짐)
-- <pre>image:
+<pre>image:
   repository: asia-northeast3-docker.pkg.dev/aesthetic-fiber-462503-t5/digivault
   name: digivault-app
   tag: latest
   pullPolicy: IfNotPresent</pre>
 
 - .github/workflows/template/deployment.yaml imagerepository, name, tag 올바르게 들어가서 artifact registry 에서 잘 가져오도록 변경
-- <pre>            containers:
+<pre>            containers:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}/{{ .Values.image.name }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}</pre>
           
+
+**frontend 에서 api 로 upbit, binance 값을 조회해 CORS 에러가 나던 이슈**
+- 기존에 frontend 에샤 API 로 upbit 잔고를 조회할 경우 생기는 문제
+- /api/upbit-price 로 개선하여 CORS 문제를 해결한 코드
+
+
+**로그인시 조회되도록 하기 위한 CSR 구조. zustard 를 통한 빠른 잔액조회**
+- 전역에 createSupabaseClient 를 배치할 경우 DB 연결이 혼재되는 이슈
+<pre>
+const supabase = createSupabaseClient()
+  
+export async function signUpWithEmail(email: string, password: string) {Add commentMore actions
+  const password_hash = await bcrypt.hash(password, 10)
+
+  const { data, error } = await supabase.from('users').insert([
+    {
+      email,
+      password_hash,
+    },
+  ])
+
+  if (error) throw error
+  return data
+}</pre>
+- CSR 기반으로 createSupabaseClient 를 함으로써 로그인시 쿠키/세션 을 공유받아 출력
+<pre>// 로그인
+export async function loginWithEmail(email: string, password: string) {
+  const supabase = createSupabaseClient()
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, password_hash')
+    .eq('email', email)
+    .single()
+
+  if (error || !data) throw new Error('유저 없음 또는 쿼리 실패')
+
+  const isValid = await bcrypt.compare(password, data.password_hash)
+  if (!isValid) throw new Error('❌ 비밀번호 틀림')
+
+  useAuthStore.getState().setEmail(email)
+
+  return data // 로그인 성공 시 사용자 정보 리턴
+}</pre>
+- 조회가 많이 되는 잔고 데이터를 zustard 에 배치해 
+<pre>type WalletState = {
+  ethBalance: string
+  tokenBalances: TokenBalance[]
+  setEthBalance: (bal: string) => void
+  setTokenBalances: (tokens: TokenBalance[]) => void
+  upbitAccessKey?: string
+  upbitSecretKey?: string
+  setUpbitKeys?: (accessKey: string, secretKey: string) => void
+}
+
+export const useWalletStore = create(
+  persist<WalletState>(
+    (set) => ({
+      ethBalance: '',
+      tokenBalances: [],
+      setEthBalance: (bal) => set({ ethBalance: bal }),
+      setTokenBalances: (tokens) => set({ tokenBalances: tokens }),
+      upbitAccessKey: '',
+      upbitSecretKey: '',
+      setUpbitKeys: (accessKey, secretKey) => set({ upbitAccessKey: accessKey, upbitSecretKey: secretKey }),
+    }),
+    {
+      name: 'wallet-storage',
+      storage: createJSONStorage(() => localStorage),
+    }
+  )
+)</pre>
+
+
+
 
 
 ## 🔐 보안 설계 고려
@@ -107,3 +179,5 @@
 
 - [ ] **JWT 기반 세션 관리 및 SSO 연동**
 - [ ] **다중 지갑(Naver, Kaikas 등) 연동**
+- [ ] **한국 거래소 비교 기능 추가**
+- [ ] **차익상황 시 API 를 통한 송금기능 추가 (미정)**
