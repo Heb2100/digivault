@@ -34,9 +34,30 @@
 ---
 
 ## 📦 주요 디버깅
-Helm 에 artifact registry 의 image name, tag 를 맞추지 않아서 GCP kub 에 ImagePullBackOff 에러가 뜨던 이슈
-- .github/workflows/deploy.yml 에 취소선과 name, tag 전역변수로 바꿔서 추가
-- <pre>      - name: Deploy via Helm
+**Helm 에 artifact registry 의 image name, tag 를 맞추지 않아서 GCP kub 에 ImagePullBackOff 에러가 뜨던 이슈**
+- .github/workflows/deploy.yaml 에 취소선과 name, tag 전역변수로 바꿔서 추가
+- <pre>      
+              - name: Build and Push Docker image to Artifact Registry
+        run: |
+          IMAGE_REPO="asia-northeast3-docker.pkg.dev/aesthetic-fiber-462503-t5/digivault"
+          IMAGE_NAME="digivault-app"
+          IMAGE_TAG="$(date +%Y%m%d%H%M%S)"
+
+          # --- 완전한 이미지 경로를 만듭니다 ---
+          FULL_IMAGE_NAME="$IMAGE_REPO/$IMAGE_NAME:$IMAGE_TAG"
+          
+          docker build --no-cache -t $FULL_IMAGE_NAME . # 빌드 시에도 이 변수 사용
+          docker push $FULL_IMAGE_NAME # 푸시 시에도 이 변수 사용
+          
+          # 👉 다음 스텝으로 전달
+          echo "IMAGE_REPO=$IMAGE_REPO" >> $GITHUB_ENV
+          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+          echo "FULL_IMAGE_NAME=$FULL_IMAGE_NAME" >> $GITHUB_ENV
+
+        ...        
+        
+        - name: Deploy via Helm
         run: |
           helm upgrade --install digivault ./helm/digivault \
           --set image.repository=asia-northeast3-docker.pkg.dev/aesthetic-fiber-462503-t5/digivault \
@@ -44,7 +65,21 @@ Helm 에 artifact registry 의 image name, tag 를 맞추지 않아서 GCP kub �
           --set image.tag=$IMAGE_TAG \
           --set image.pullPolicy=Always</pre>
           
+- .helm/digivault/value.yaml 에 repository, name, tag 올바르게 받을수 있도록 변경 (tag 는 현재날짜로 설정. 배포시 덮어씌워짐)
+- <pre>image:
+  repository: asia-northeast3-docker.pkg.dev/aesthetic-fiber-462503-t5/digivault
+  name: digivault-app
+  tag: latest
+  pullPolicy: IfNotPresent</pre>
 
+- .github/workflows/template/deployment.yaml imagerepository, name, tag 올바르게 들어가서 artifact registry 에서 잘 가져오도록 변경
+- <pre>            containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}/{{ .Values.image.name }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}</pre>
+          
 
 
 ## 🔐 보안 설계 고려
