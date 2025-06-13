@@ -32,6 +32,21 @@
 | 🔐 보안 고려 | `.env.production` 자동 주입, 키 로컬 보관, CORS 프록시 처리 |
 
 ---
+
+## 📦 주요 디버깅
+Helm 에 artifact registry 의 image name, tag 를 맞추지 않아서 GCP kub 에 ImagePullBackOff 에러가 뜨던 이슈
+- .github/workflows/deploy.yml 에 취소선과 name, tag 전역변수로 바꿔서 추가
+- <pre>      - name: Deploy via Helm
+        run: |
+          helm upgrade --install digivault ./helm/digivault \
+          --set image.repository=asia-northeast3-docker.pkg.dev/aesthetic-fiber-462503-t5/digivault \
+          --set image.name=digivault-app \
+          --set image.tag=$IMAGE_TAG \
+          --set image.pullPolicy=Always</pre>
+          
+
+
+
 ## 🔐 보안 설계 고려
 
 - ✅ Supabase env 자동 주입 (`NEXT_PUBLIC_...` secret → `.env.production`)
