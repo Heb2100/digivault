@@ -35,8 +35,8 @@
 
 ---
 
-## 주요 디버깅
-**Helm 에 artifact registry 의 image name, tag 를 맞추지 않아서 GCP kub 에 ImagePullBackOff 에러가 뜨던 이슈**
+# 주요 디버깅
+## Helm 에 artifact registry 의 image name, tag 를 맞추지 않아서 GCP kub 에 ImagePullBackOff 에러가 뜨던 이슈
 - .github/workflows/deploy.yaml 에 취소선과 name, tag 전역변수로 바꿔서 추가
 <pre>      
               - name: Build and Push Docker image to Artifact Registry
@@ -82,8 +82,7 @@
           
 ---
 <br><br>
-
-**frontend 에서 api 로 upbit, binance 값을 조회해 CORS 에러가 나던 이슈**
+## frontend 에서 api 로 upbit, binance 값을 조회해 CORS 에러가 나던 이슈
 - 기존에 frontend 에서 API 로 upbit 잔고를 조회할 경우 생기는 문제
 <pre>
         const upbitResponse = await fetch('https://api.upbit.com/v1/ticker?markets=KRW-USDT', {
@@ -137,7 +136,7 @@ export async function POST(req: Request) {
 ---
 <br><br>
 
-**로그인시 조회되도록 하기 위한 CSR 구조. zustard 를 통한 빠른 잔액조회**
+## 로그인시 조회되도록 하기 위한 CSR 구조. zustard 를 통한 빠른 잔액조회
 - 전역에 createSupabaseClient 를 배치할 경우 DB 연결이 혼재되는 이슈
 <pre>
 const supabase = createSupabaseClient()
