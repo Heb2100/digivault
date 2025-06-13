@@ -47,10 +47,6 @@ Next.js App (13+/App Router)
 ├── Components
 │ └── ConnectWallet.tsx, WalletPage.tsx 등
 
-yaml
-복사
-편집
-
 ---
 
 ## 🔐 보안 설계 고려
