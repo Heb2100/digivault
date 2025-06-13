@@ -186,9 +186,14 @@ export default function LoginPage() {
               >
                 취소
               </button>
+              <h4 className="text-lg font-bold mb-4">IP 주소 등록 34.47.67.133</h4>
+              </div>
+                <div className="mb-10 flex flex-col items-center">
+                <Image src="/upbit_login_help.png" alt="upbit_login_help" width={360} height={96} />
+              </div>
             </div>
           </div>
-        </div>
+        
       )}
 
       {/* 로고 */}
