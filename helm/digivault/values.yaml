@@ -3,10 +3,11 @@
 replicaCount: 1 # 배포될 Pod의 초기 개수
 
 image:
-  repository: asia-northeast3-docker.pkg.dev/aesthetic-fiber-462503-t5/digivault/digivault-app # Artifact Registry의 기본 이미지 경로
-  tag: "latest" # 이미지의 기본 태그
-  pullPolicy: IfNotPresent # 이미지 가져오기 정책 (Always로 변경 권장)
-
+  repository: asia-northeast3-docker.pkg.dev/aesthetic-fiber-462503-t5/digivault
+  name: digivault-app
+  tag: latest
+  pullPolicy: IfNotPresent
+  
 service:
   type: LoadBalancer # 서비스 타입 (ClusterIP, NodePort, LoadBalancer)
   port: 80 # 서비스가 노출할 포트
