@@ -32,7 +32,7 @@ spec:
         - name: {{ .Chart.Name }} # 컨테이너 이름 (차트 이름과 동일하게)
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}" # Artifact Registry 이미지 경로와 태그
+          image: "{{ .Values.image.repository }}/{{ .Values.image.name }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }} # values.yaml의 image.pullPolicy 사용 (Always 권장)
           ports:
             - name: http
