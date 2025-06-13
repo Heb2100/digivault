@@ -1,9 +1,11 @@
 # 🚀 DigiVault — 디지털 자산 보관 및 차익 거래 플랫폼
 
 > 커스터디 서비스와 차익 거래 시세 분석 기능을 통합한 Web3 기반 디지털 자산 플랫폼  
-> 업비트 API 연동 및 멀티 거래소 시세 비교를 통해 사용자 자산 흐름을 투명하게 관리하고,  
+> 업비트 API 연동 및 멀티 거래소 시세 비교를 통해 자금의 동향을 관리하고,  
 > GCP 기반의 CI/CD 파이프라인을 통해 운영 안정성을 확보한 프로젝트입니다.
-
+<img src="./public/welcomepage1.png"/>
+<img src="./public/welcomepage2.png"/>
+<img src="./public/welcomepage3.png"/>
 ---
 
 ##  기술 스택
