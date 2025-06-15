@@ -88,18 +88,7 @@
 ---
 <br><br>
 ## frontend 에서 api 로 upbit, binance 값을 조회해 CORS 에러가 나던 이슈
-- 브라우저 상에서는 잔액을 조회할 수 없게 공식문서에서 제한한 이슈로 인해 CORS 에러 발생
-<pre> 
-CORS 에러가 발생합니다
-시세 관련 조회 Rest API, Public 타입 WEBSOCKET 요청에 대해 헤더에 Origin이 있을 시 10초당 1회만 요청 가능 합니다.
-
-관련 공지 바로가기
-확인방법: 해당 정책은 Remaining-Req 응답 헤더의 group=origin인 경우에 적용됩니다.
-Rate Limit에 걸릴 경우 CORS에러가 발생 할 수 있습니다.
-브라우저에서 요청이 필요할 경우, 제한에 맞추어 요청해주시거나 별도의 프록시 서버를 구성하여 사용하시기 바랍니다.
-</pre>
-
--  따라서 frontend 에서 API 로 upbit 잔고를 조회할 경우 조회해오지 못하는 문제가 발생
+-  frontend 에서 API 로 upbit 잔고를 조회할 경우 조회해오지 못하는 문제가 발생
 <pre>
         const upbitResponse = await fetch('https://api.upbit.com/v1/ticker?markets=KRW-USDT', {
           headers: {
@@ -113,6 +102,17 @@ Rate Limit에 걸릴 경우 CORS에러가 발생 할 수 있습니다.
           }
   
 </pre>
+- 브라우저 상에서는 잔액을 조회할 수 없게 공식문서에서 제한한 이슈로 인해 CORS 에러 발생
+<pre> 
+CORS 에러가 발생합니다
+시세 관련 조회 Rest API, Public 타입 WEBSOCKET 요청에 대해 헤더에 Origin이 있을 시 10초당 1회만 요청 가능 합니다.
+
+관련 공지 바로가기
+확인방법: 해당 정책은 Remaining-Req 응답 헤더의 group=origin인 경우에 적용됩니다.
+Rate Limit에 걸릴 경우 CORS에러가 발생 할 수 있습니다.
+브라우저에서 요청이 필요할 경우, 제한에 맞추어 요청해주시거나 별도의 프록시 서버를 구성하여 사용하시기 바랍니다.
+</pre>
+
 - /api/upbit-price 로 개선하여 CORS 문제를 해결한 코드
 <pre>
 
