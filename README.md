@@ -21,7 +21,11 @@
 | **디자인 협업** | `Figma` (예정) |
 
 ---
-
+##  기술 스택 사용이유
+- GCP : AWS, Azure 에 비해 직관적 UI 와 저렴한 가격. 
+- GKE(kubernetes) : 컨테이너 오케스트레이션의 표준. 무중단 배포, 오토스케일링, 자가복구 등 필수적인 기능을 내장. docker compose, AWS ECS 에 비해 높은 확장성 가짐. 
+- Helm : kubernetes 리소르를 템플릿화하여 버전관리가 쉽고 배포가 쉬움. value.yaml 만 바꾸어 여러 환경을 구성 가능. kustomize, kubectl(only) 에 비해 높은 템플릿화 성능을 가짐
+---
 ## 주요 기능
 
 | 기능명 | 설명 |
