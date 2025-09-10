@@ -9,27 +9,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout code # 최신 커밋됰 모드를 runner 환경에 가져옴. 
         uses: actions/checkout@v3
 
-      - name: Set up Docker
+      - name: Set up Docker # 멀티 플랫폼 이미지를 빌드할 수 있도록 도커 세팅. 
         uses: docker/setup-buildx-action@v2
 
-      - name: Set up GCP auth
+      - name: Set up GCP auth # github secret 에 등록된 GCP 계정키 불러와 인증
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GKE_SA_KEY }}
 
-      - name: Configure Docker to use gcloud as a credential helper
+      - name: Configure Docker to use gcloud as a credential helper # docker 가 GCP artifact registry 에 접근할 때 gclould 를 인증도우미로 사용하게 설정. 
         run: |
           gcloud auth configure-docker asia-northeast3-docker.pkg.dev
       
-      - name: Inject Supabase ENV to .env.production
+      - name: Inject Supabase ENV to .env.production # db 로 사용된 supabase URL, KEY 를 애플리케이션 실행 환경변수 파일인 env.production 파일에 주입. 
         run: |
           echo "NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" >> .env.production
           echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" >> .env.production
 
-      - name: Build and Push Docker image to Artifact Registry
+      - name: Build and Push Docker image to Artifact Registry # 변경된 이미지에서 도커 이미지를 빌드 하고 gcp 에 푸쉬하기기
         run: |
           IMAGE_REPO="asia-northeast3-docker.pkg.dev/aesthetic-fiber-462503-t5/digivault"
           IMAGE_NAME="digivault-app"
@@ -47,17 +47,17 @@ jobs:
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
           echo "FULL_IMAGE_NAME=$FULL_IMAGE_NAME" >> $GITHUB_ENV
 
-      - name: Set up kubectl
+      - name: Set up kubectl # GCP SDK 를 설치하고 kubectl 컴포넌트를 추가 설치
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: aesthetic-fiber-462503-t5
           install_components: kubectl
 
-      - name: Configure kubectl
+      - name: Configure kubectl # kubectl 이 연결할 GKE 클러스터 설정
         run: |
           gcloud container clusters get-credentials digivault-cluster --region asia-northeast3
 
-      - name: Deploy via Helm
+      - name: Deploy via Helm # 빌드한 image repository, name, tag 값을 주입해 최신 빌드된 docker 이미지가 반영되도록 설정
         run: |
           helm upgrade --install digivault ./helm/digivault \
           --set image.repository=asia-northeast3-docker.pkg.dev/aesthetic-fiber-462503-t5/digivault \
